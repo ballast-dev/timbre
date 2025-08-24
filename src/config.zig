@@ -207,3 +207,259 @@ pub const UserConfig = struct {
         };
     }
 };
+
+// Tests
+test "UserLevel init and pattern matching" {
+    const allocator = std.testing.allocator;
+
+    var level = try UserLevel.init(allocator, "error|fail", "error.log");
+    defer level.deinit();
+
+    try std.testing.expectEqualStrings("error.log", level.path);
+    try std.testing.expect(level.count == 0);
+    try std.testing.expect(level.patterns.len >= 2); // Should have at least "error" and "fail"
+}
+
+test "UserLevel pattern matching - basic" {
+    const allocator = std.testing.allocator;
+
+    var level = try UserLevel.init(allocator, "error|exception", "error.log");
+    defer level.deinit();
+
+    // Should match
+    try std.testing.expect(level.matches("This is an error message"));
+    try std.testing.expect(level.matches("Exception occurred"));
+    try std.testing.expect(level.matches("ERROR: Something went wrong"));
+    try std.testing.expect(level.matches("caught exception in handler"));
+
+    // Should not match
+    try std.testing.expect(!level.matches("This is an info message"));
+    try std.testing.expect(!level.matches("Warning: be careful"));
+    try std.testing.expect(!level.matches("Debug info"));
+}
+
+test "UserLevel pattern matching - case insensitive" {
+    const allocator = std.testing.allocator;
+
+    var level = try UserLevel.init(allocator, "warning", "warn.log");
+    defer level.deinit();
+
+    // Should match regardless of case
+    try std.testing.expect(level.matches("WARNING: Check this"));
+    try std.testing.expect(level.matches("warning detected"));
+    try std.testing.expect(level.matches("Warning: something"));
+    try std.testing.expect(level.matches("WaRnInG"));
+}
+
+test "UserLevel pattern matching - complex patterns" {
+    const allocator = std.testing.allocator;
+
+    var level = try UserLevel.init(allocator, "fatal|critical|severe", "critical.log");
+    defer level.deinit();
+
+    try std.testing.expect(level.matches("Fatal error occurred"));
+    try std.testing.expect(level.matches("This is critical"));
+    try std.testing.expect(level.matches("Severe problem detected"));
+    try std.testing.expect(!level.matches("This is just info"));
+}
+
+test "UserLevel pattern matching - optional character handling" {
+    const allocator = std.testing.allocator;
+
+    var level = try UserLevel.init(allocator, "errors?", "error.log");
+    defer level.deinit();
+
+    // Should match both "error" and "errors"
+    try std.testing.expect(level.matches("error occurred"));
+    try std.testing.expect(level.matches("errors detected"));
+}
+
+test "UserConfig initialization" {
+    const allocator = std.testing.allocator;
+
+    var config = UserConfig.init(allocator);
+    defer config.deinit();
+
+    try std.testing.expectEqualStrings(".timbre", config.getLogDir());
+    try std.testing.expect(config.levels.count() == 0);
+}
+
+test "UserConfig with defaults" {
+    const allocator = std.testing.allocator;
+
+    var config = try UserConfig.initWithDefaults(allocator);
+    defer config.deinit();
+
+    try std.testing.expectEqualStrings(".timbre", config.getLogDir());
+    try std.testing.expect(config.levels.count() == 4); // error, warn, info, debug
+
+    // Check that default levels exist
+    try std.testing.expect(config.getLevel("error") != null);
+    try std.testing.expect(config.getLevel("warn") != null);
+    try std.testing.expect(config.getLevel("info") != null);
+    try std.testing.expect(config.getLevel("debug") != null);
+}
+
+test "UserConfig add level" {
+    const allocator = std.testing.allocator;
+
+    var config = UserConfig.init(allocator);
+    defer config.deinit();
+
+    try config.addLevel("custom", "custom_pattern", "custom.log");
+
+    const level = config.getLevel("custom");
+    try std.testing.expect(level != null);
+    try std.testing.expectEqualStrings("custom.log", level.?.path);
+}
+
+test "UserConfig set log directory" {
+    const allocator = std.testing.allocator;
+
+    var config = UserConfig.init(allocator);
+    defer config.deinit();
+
+    try config.setLogDir("/tmp/test_logs");
+    try std.testing.expectEqualStrings("/tmp/test_logs", config.getLogDir());
+}
+
+test "UserConfig TOML parsing - basic" {
+    const allocator = std.testing.allocator;
+
+    var config = UserConfig.init(allocator);
+    defer config.deinit();
+
+    const toml_content =
+        \\[timbre]
+        \\log_dir = "/tmp/logs"
+        \\
+        \\[log_level]
+        \\error = "error|exception|fail"
+        \\warning = "warn|warning"
+        \\info = "info"
+    ;
+
+    const result = try config.parseToml(toml_content);
+    try std.testing.expect(result == true);
+
+    try std.testing.expectEqualStrings("/tmp/logs", config.getLogDir());
+    try std.testing.expect(config.getLevel("error") != null);
+    try std.testing.expect(config.getLevel("warning") != null);
+    try std.testing.expect(config.getLevel("info") != null);
+}
+
+test "UserConfig TOML parsing - quoted values" {
+    const allocator = std.testing.allocator;
+
+    var config = UserConfig.init(allocator);
+    defer config.deinit();
+
+    const toml_content =
+        \\[timbre]
+        \\log_dir = "/quoted/path"
+        \\
+        \\[log_level]
+        \\error = "error|exception"
+    ;
+
+    const result = try config.parseToml(toml_content);
+    try std.testing.expect(result == true);
+
+    try std.testing.expectEqualStrings("/quoted/path", config.getLogDir());
+}
+
+test "UserConfig TOML parsing - comments and empty lines" {
+    const allocator = std.testing.allocator;
+
+    var config = UserConfig.init(allocator);
+    defer config.deinit();
+
+    const toml_content =
+        \\# This is a comment
+        \\[timbre]
+        \\# Another comment
+        \\log_dir = "/test"
+        \\
+        \\# Log levels section
+        \\[log_level]
+        \\error = "error"
+        \\
+        \\# End of file
+    ;
+
+    const result = try config.parseToml(toml_content);
+    try std.testing.expect(result == true);
+
+    try std.testing.expectEqualStrings("/test", config.getLogDir());
+    try std.testing.expect(config.getLevel("error") != null);
+}
+
+test "UserConfig TOML parsing - malformed input handling" {
+    const allocator = std.testing.allocator;
+
+    var config = UserConfig.init(allocator);
+    defer config.deinit();
+
+    // Missing equals sign - should not crash
+    const toml_content =
+        \\[timbre]
+        \\log_dir "/test"
+        \\malformed line
+        \\[log_level]
+        \\error = "error"
+    ;
+
+    const result = try config.parseToml(toml_content);
+    try std.testing.expect(result == true);
+
+    // Should still parse valid lines
+    try std.testing.expect(config.getLevel("error") != null);
+}
+
+test "UserLevel count increment" {
+    const allocator = std.testing.allocator;
+
+    var level = try UserLevel.init(allocator, "test", "test.log");
+    defer level.deinit();
+
+    try std.testing.expect(level.count == 0);
+
+    // Simulate matching
+    if (level.matches("test message")) {
+        level.count += 1;
+    }
+
+    try std.testing.expect(level.count == 1);
+}
+
+test "UserConfig multiple levels with same pattern" {
+    const allocator = std.testing.allocator;
+
+    var config = UserConfig.init(allocator);
+    defer config.deinit();
+
+    try config.addLevel("error1", "error", "error1.log");
+    try config.addLevel("error2", "error", "error2.log");
+
+    try std.testing.expect(config.levels.count() == 2);
+    try std.testing.expect(config.getLevel("error1") != null);
+    try std.testing.expect(config.getLevel("error2") != null);
+}
+
+test "UserConfig edge cases" {
+    const allocator = std.testing.allocator;
+
+    var config = UserConfig.init(allocator);
+    defer config.deinit();
+
+    // Empty pattern
+    try config.addLevel("empty", "", "empty.log");
+    const empty_level = config.getLevel("empty");
+    try std.testing.expect(empty_level != null);
+
+    // Very long pattern
+    const long_pattern = "a" ** 100;
+    try config.addLevel("long", long_pattern, "long.log");
+    const long_level = config.getLevel("long");
+    try std.testing.expect(long_level != null);
+}
