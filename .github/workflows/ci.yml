@@ -10,9 +10,12 @@ jobs:
     runs-on: ubuntu-latest # Host runner
     container:
       image: ghcr.io/ballast-dev/timbre
-      credentials:
-        username: krakjn
-        password: ${{ secrets.TIMBRE_TOKEN }} # has permissions
+      # credentials:
+      #   username: krakjn
+      #   password: ${{ secrets.TOKEN }} # has permissions
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
