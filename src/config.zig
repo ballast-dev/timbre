@@ -11,8 +11,8 @@ pub const UserLevel = struct {
     const Self = @This();
 
     pub fn init(allocator: std.mem.Allocator, pattern_str: []const u8, path: []const u8) !Self {
-        // Compile the regex pattern
-        const compiled_regex = regex.Regex.compile(allocator, pattern_str) catch |err| {
+        // Compile the regex pattern with case-insensitive flag (like C++ icase)
+        const compiled_regex = regex.Regex.compileWithFlags(allocator, pattern_str, regex.RegexFlags{ .case_insensitive = true, .optimize = true }) catch |err| {
             log.log(.err, "Failed to compile regex pattern");
             return err;
         };
@@ -67,11 +67,11 @@ pub const UserConfig = struct {
     pub fn initWithDefaults(allocator: std.mem.Allocator) !Self {
         var config = Self.init(allocator);
 
-        // Add default log levels with regex patterns (case-insensitive)
-        try config.addLevel("error", "(?i)(error|exception|fail|failed|failure|critical)", "error.log");
-        try config.addLevel("warn", "(?i)(warn|warning)", "warn.log");
-        try config.addLevel("info", "(?i)info", "info.log");
-        try config.addLevel("debug", "(?i)debug", "debug.log");
+        // Add default log levels with regex patterns (case-insensitive matching enabled)
+        try config.addLevel("error", "(error|exception|fail(ed|ure)?|critical)", "error.log");
+        try config.addLevel("warn", "(warn(ing)?)", "warn.log");
+        try config.addLevel("info", "(info)", "info.log");
+        try config.addLevel("debug", "(debug)", "debug.log");
 
         return config;
     }

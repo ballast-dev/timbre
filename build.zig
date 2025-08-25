@@ -34,21 +34,17 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    // Add regex module to exe
     exe.root_module.addImport("regex", regex_lib.root_module);
 
-    // Install artifacts
     b.installArtifact(regex_lib);
     b.installArtifact(exe);
 
-    // Add individual build steps
     const regex_step = b.step("regex", "Build only the regex library");
     regex_step.dependOn(&b.addInstallArtifact(regex_lib, .{}).step);
 
     const exe_step = b.step("exe", "Build the timbre executable");
     exe_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
 
-    // Add run step for native build
     const run_step = b.step("run", "Run the app");
     const run_cmd = b.addRunArtifact(exe);
     run_step.dependOn(&run_cmd.step);
@@ -125,15 +121,77 @@ pub fn build(b: *std.Build) void {
         all_step.dependOn(&target_exe_install.step);
     }
 
-    // Add test step
-    const exe_tests = b.addTest(.{
-        .root_module = exe.root_module,
+    // Add test step - test individual modules since there's no library root
+    const main_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    main_tests.root_module.addImport("regex", regex_lib.root_module);
+
+    const cli_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/cli.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
-    // Add regex module to tests
-    exe_tests.root_module.addImport("regex", regex_lib.root_module);
+    const config_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/config.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    config_tests.root_module.addImport("regex", regex_lib.root_module);
 
-    const run_exe_tests = b.addRunArtifact(exe_tests);
+    const log_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/log.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+
+    const timbre_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/timbre.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    timbre_tests.root_module.addImport("regex", regex_lib.root_module);
+
+    const regex_tests = b.addTest(.{
+        .root_module = regex_lib.root_module,
+    });
+
+    const integration_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/integration_test.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    integration_tests.root_module.addImport("regex", regex_lib.root_module);
+
+    const run_main_tests = b.addRunArtifact(main_tests);
+    const run_cli_tests = b.addRunArtifact(cli_tests);
+    const run_config_tests = b.addRunArtifact(config_tests);
+    const run_log_tests = b.addRunArtifact(log_tests);
+    const run_timbre_tests = b.addRunArtifact(timbre_tests);
+    const run_regex_tests = b.addRunArtifact(regex_tests);
+    const run_integration_tests = b.addRunArtifact(integration_tests);
+
     const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_exe_tests.step);
+    test_step.dependOn(&run_main_tests.step);
+    test_step.dependOn(&run_cli_tests.step);
+    test_step.dependOn(&run_config_tests.step);
+    test_step.dependOn(&run_log_tests.step);
+    test_step.dependOn(&run_timbre_tests.step);
+    test_step.dependOn(&run_regex_tests.step);
+    test_step.dependOn(&run_integration_tests.step);
 }

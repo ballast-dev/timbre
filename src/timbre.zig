@@ -126,7 +126,7 @@ test "openLogFiles with test config" {
     // Set a temporary log directory that we know exists
     try test_config.setLogDir("/tmp");
 
-    // Add a test level
+    // Add a test level with regex pattern
     try test_config.addLevel("test", "test", "test_timbre.log");
 
     var log_files = openLogFiles(&test_config, false) catch {
@@ -163,7 +163,7 @@ test "processLine pattern matching" {
     var test_config = config.UserConfig.init(allocator);
     defer test_config.deinit();
 
-    // Add a test level with known pattern
+    // Add a test level with regex pattern
     try test_config.addLevel("test_error", "error", "test_error.log");
 
     var log_files = LogFiles.init(allocator);
@@ -190,7 +190,7 @@ test "processLine multiple patterns" {
     var test_config = config.UserConfig.init(allocator);
     defer test_config.deinit();
 
-    // Add multiple test levels
+    // Add multiple test levels with regex patterns
     try test_config.addLevel("error_level", "error", "error.log");
     try test_config.addLevel("warning_level", "warning", "warning.log");
     try test_config.addLevel("info_level", "info", "info.log");
@@ -222,7 +222,7 @@ test "processLine pattern priority" {
     var test_config = config.UserConfig.init(allocator);
     defer test_config.deinit();
 
-    // Add levels in specific order
+    // Add levels with regex patterns in specific order
     try test_config.addLevel("specific", "specific_error", "specific.log");
     try test_config.addLevel("general", "error", "general.log");
 

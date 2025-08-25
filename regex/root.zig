@@ -37,6 +37,13 @@ pub const Match = struct {
     end: usize,
 };
 
+/// Regex compilation flags
+pub const RegexFlags = struct {
+    case_insensitive: bool = false,
+    multiline: bool = false,
+    optimize: bool = true,
+};
+
 /// Character class for efficient character set matching
 pub const CharClass = struct {
     bitmap: [256]bool,
@@ -69,6 +76,17 @@ pub const CharClass = struct {
     pub fn matches(self: *const Self, c: u8) bool {
         const in_class = self.bitmap[c];
         return if (self.negated) !in_class else in_class;
+    }
+
+    pub fn matchesWithFlags(self: *const Self, c: u8, flags: RegexFlags) bool {
+        if (flags.case_insensitive) {
+            // Try both uppercase and lowercase versions
+            const lower_match = self.matches(std.ascii.toLower(c));
+            const upper_match = self.matches(std.ascii.toUpper(c));
+            return lower_match or upper_match;
+        } else {
+            return self.matches(c);
+        }
     }
 };
 
@@ -446,17 +464,25 @@ const RegexEngine = struct {
     }
 
     pub fn isMatch(self: *Self, ast: *ASTNode, text: []const u8) bool {
+        return self.isMatchWithFlags(ast, text, RegexFlags{});
+    }
+
+    pub fn findMatch(self: *Self, ast: *ASTNode, text: []const u8) ?Match {
+        return self.findMatchWithFlags(ast, text, RegexFlags{});
+    }
+
+    pub fn isMatchWithFlags(self: *Self, ast: *ASTNode, text: []const u8, flags: RegexFlags) bool {
         for (0..text.len + 1) |start| {
-            if (self.matchAt(ast, text, start).matched) {
+            if (self.matchAtWithFlags(ast, text, start, flags).matched) {
                 return true;
             }
         }
         return false;
     }
 
-    pub fn findMatch(self: *Self, ast: *ASTNode, text: []const u8) ?Match {
+    pub fn findMatchWithFlags(self: *Self, ast: *ASTNode, text: []const u8, flags: RegexFlags) ?Match {
         for (0..text.len + 1) |start| {
-            const result = self.matchAt(ast, text, start);
+            const result = self.matchAtWithFlags(ast, text, start, flags);
             if (result.matched) {
                 return Match{ .start = start, .end = result.end };
             }
@@ -470,20 +496,35 @@ const RegexEngine = struct {
     };
 
     fn matchAt(self: *Self, ast: *ASTNode, text: []const u8, pos: usize) MatchResult {
-        return self.matchNode(ast, text, pos);
+        return self.matchAtWithFlags(ast, text, pos, RegexFlags{});
+    }
+
+    fn matchAtWithFlags(self: *Self, ast: *ASTNode, text: []const u8, pos: usize, flags: RegexFlags) MatchResult {
+        return self.matchNodeWithFlags(ast, text, pos, flags);
     }
 
     fn matchNode(self: *Self, node: *ASTNode, text: []const u8, pos: usize) MatchResult {
+        return self.matchNodeWithFlags(node, text, pos, RegexFlags{});
+    }
+
+    fn matchNodeWithFlags(self: *Self, node: *ASTNode, text: []const u8, pos: usize, flags: RegexFlags) MatchResult {
         switch (node.*) {
             .char => |c| {
-                if (pos < text.len and text[pos] == c) {
-                    return MatchResult{ .matched = true, .end = pos + 1 };
+                if (pos < text.len) {
+                    const matches = if (flags.case_insensitive)
+                        std.ascii.toLower(text[pos]) == std.ascii.toLower(c)
+                    else
+                        text[pos] == c;
+
+                    if (matches) {
+                        return MatchResult{ .matched = true, .end = pos + 1 };
+                    }
                 }
                 return MatchResult{ .matched = false, .end = pos };
             },
 
             .char_class => |cc| {
-                if (pos < text.len and cc.matches(text[pos])) {
+                if (pos < text.len and cc.matchesWithFlags(text[pos], flags)) {
                     return MatchResult{ .matched = true, .end = pos + 1 };
                 }
                 return MatchResult{ .matched = false, .end = pos };
@@ -511,19 +552,19 @@ const RegexEngine = struct {
             },
 
             .alternation => |alt| {
-                const left_result = self.matchNode(alt.left, text, pos);
+                const left_result = self.matchNodeWithFlags(alt.left, text, pos, flags);
                 if (left_result.matched) {
                     return left_result;
                 }
-                return self.matchNode(alt.right, text, pos);
+                return self.matchNodeWithFlags(alt.right, text, pos, flags);
             },
 
             .concatenation => |cat| {
-                const left_result = self.matchNode(cat.left, text, pos);
+                const left_result = self.matchNodeWithFlags(cat.left, text, pos, flags);
                 if (!left_result.matched) {
                     return left_result;
                 }
-                return self.matchNode(cat.right, text, left_result.end);
+                return self.matchNodeWithFlags(cat.right, text, left_result.end, flags);
             },
 
             .star => |inner| {
@@ -533,7 +574,7 @@ const RegexEngine = struct {
 
                 // Keep matching as long as we can
                 while (true) {
-                    const result = self.matchNode(inner, text, current_pos);
+                    const result = self.matchNodeWithFlags(inner, text, current_pos, flags);
                     if (!result.matched or result.end == current_pos) {
                         // No progress or no match, stop
                         break;
@@ -547,7 +588,7 @@ const RegexEngine = struct {
 
             .plus => |inner| {
                 // Must match at least once
-                const first_result = self.matchNode(inner, text, pos);
+                const first_result = self.matchNodeWithFlags(inner, text, pos, flags);
                 if (!first_result.matched) {
                     return first_result;
                 }
@@ -556,7 +597,7 @@ const RegexEngine = struct {
 
                 // Keep matching as long as we can
                 while (true) {
-                    const result = self.matchNode(inner, text, current_pos);
+                    const result = self.matchNodeWithFlags(inner, text, current_pos, flags);
                     if (!result.matched or result.end == current_pos) {
                         break;
                     }
@@ -568,7 +609,7 @@ const RegexEngine = struct {
 
             .question => |inner| {
                 // Try to match, but it's optional
-                const result = self.matchNode(inner, text, pos);
+                const result = self.matchNodeWithFlags(inner, text, pos, flags);
                 if (result.matched) {
                     return result;
                 } else {
@@ -582,7 +623,7 @@ const RegexEngine = struct {
 
                 // Match minimum required times
                 while (matches < rep.min) {
-                    const result = self.matchNode(rep.node, text, current_pos);
+                    const result = self.matchNodeWithFlags(rep.node, text, current_pos, flags);
                     if (!result.matched) {
                         return MatchResult{ .matched = false, .end = pos };
                     }
@@ -593,7 +634,7 @@ const RegexEngine = struct {
                 // Match up to maximum if specified
                 if (rep.max) |max| {
                     while (matches < max) {
-                        const result = self.matchNode(rep.node, text, current_pos);
+                        const result = self.matchNodeWithFlags(rep.node, text, current_pos, flags);
                         if (!result.matched or result.end == current_pos) {
                             break;
                         }
@@ -603,7 +644,7 @@ const RegexEngine = struct {
                 } else {
                     // No maximum, match as many as possible
                     while (true) {
-                        const result = self.matchNode(rep.node, text, current_pos);
+                        const result = self.matchNodeWithFlags(rep.node, text, current_pos, flags);
                         if (!result.matched or result.end == current_pos) {
                             break;
                         }
@@ -616,7 +657,7 @@ const RegexEngine = struct {
             },
 
             .group => |inner| {
-                return self.matchNode(inner, text, pos);
+                return self.matchNodeWithFlags(inner, text, pos, flags);
             },
         }
     }
@@ -626,16 +667,22 @@ const RegexEngine = struct {
 pub const Regex = struct {
     ast: *ASTNode,
     allocator: std.mem.Allocator,
+    flags: RegexFlags,
 
     const Self = @This();
 
     pub fn compile(allocator: std.mem.Allocator, pattern: []const u8) !Self {
+        return compileWithFlags(allocator, pattern, RegexFlags{});
+    }
+
+    pub fn compileWithFlags(allocator: std.mem.Allocator, pattern: []const u8, flags: RegexFlags) !Self {
         var parser = Parser.init(allocator, pattern);
         const ast = try parser.parse();
 
         return Self{
             .ast = ast,
             .allocator = allocator,
+            .flags = flags,
         };
     }
 
@@ -646,12 +693,12 @@ pub const Regex = struct {
 
     pub fn isMatch(self: *Self, text: []const u8) bool {
         var engine = RegexEngine.init(self.allocator);
-        return engine.isMatch(self.ast, text);
+        return engine.isMatchWithFlags(self.ast, text, self.flags);
     }
 
     pub fn findMatch(self: *Self, text: []const u8) ?Match {
         var engine = RegexEngine.init(self.allocator);
-        return engine.findMatch(self.ast, text);
+        return engine.findMatchWithFlags(self.ast, text, self.flags);
     }
 };
 
@@ -664,6 +711,18 @@ pub fn isMatch(allocator: std.mem.Allocator, pattern: []const u8, text: []const 
 
 pub fn findMatch(allocator: std.mem.Allocator, pattern: []const u8, text: []const u8) !?Match {
     var regex = try Regex.compile(allocator, pattern);
+    defer regex.deinit();
+    return regex.findMatch(text);
+}
+
+pub fn isMatchCaseInsensitive(allocator: std.mem.Allocator, pattern: []const u8, text: []const u8) !bool {
+    var regex = try Regex.compileWithFlags(allocator, pattern, RegexFlags{ .case_insensitive = true });
+    defer regex.deinit();
+    return regex.isMatch(text);
+}
+
+pub fn findMatchCaseInsensitive(allocator: std.mem.Allocator, pattern: []const u8, text: []const u8) !?Match {
+    var regex = try Regex.compileWithFlags(allocator, pattern, RegexFlags{ .case_insensitive = true });
     defer regex.deinit();
     return regex.findMatch(text);
 }
@@ -828,4 +887,53 @@ test "regex find match positions" {
 
     const result3 = try findMatch(allocator, "xyz", "hello world");
     try std.testing.expect(result3 == null);
+}
+
+test "regex case insensitive matching" {
+    const allocator = std.testing.allocator;
+
+    // Test case insensitive convenience functions
+    try std.testing.expect(try isMatchCaseInsensitive(allocator, "error", "ERROR"));
+    try std.testing.expect(try isMatchCaseInsensitive(allocator, "ERROR", "error"));
+    try std.testing.expect(try isMatchCaseInsensitive(allocator, "WaRnInG", "warning"));
+    try std.testing.expect(!try isMatchCaseInsensitive(allocator, "error", "info"));
+
+    // Test compiled regex with flags
+    var regex_ci = try Regex.compileWithFlags(allocator, "error|fail", RegexFlags{ .case_insensitive = true });
+    defer regex_ci.deinit();
+
+    try std.testing.expect(regex_ci.isMatch("ERROR occurred"));
+    try std.testing.expect(regex_ci.isMatch("System FAILED"));
+    try std.testing.expect(regex_ci.isMatch("error message"));
+    try std.testing.expect(regex_ci.isMatch("FAIL to connect"));
+    try std.testing.expect(!regex_ci.isMatch("info message"));
+
+    // Test character classes with case insensitive
+    var regex_class = try Regex.compileWithFlags(allocator, "[a-z]+", RegexFlags{ .case_insensitive = true });
+    defer regex_class.deinit();
+
+    try std.testing.expect(regex_class.isMatch("HELLO"));
+    try std.testing.expect(regex_class.isMatch("hello"));
+    try std.testing.expect(regex_class.isMatch("HeLLo"));
+}
+
+test "regex flags and compilation" {
+    const allocator = std.testing.allocator;
+
+    // Test default case sensitive
+    var regex_default = try Regex.compile(allocator, "Error");
+    defer regex_default.deinit();
+
+    try std.testing.expect(regex_default.isMatch("Error"));
+    try std.testing.expect(!regex_default.isMatch("ERROR"));
+    try std.testing.expect(!regex_default.isMatch("error"));
+
+    // Test case insensitive with flags
+    var regex_flags = try Regex.compileWithFlags(allocator, "Error", RegexFlags{ .case_insensitive = true, .optimize = true });
+    defer regex_flags.deinit();
+
+    try std.testing.expect(regex_flags.isMatch("Error"));
+    try std.testing.expect(regex_flags.isMatch("ERROR"));
+    try std.testing.expect(regex_flags.isMatch("error"));
+    try std.testing.expect(regex_flags.isMatch("ErRoR"));
 }

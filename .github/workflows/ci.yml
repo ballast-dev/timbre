@@ -30,7 +30,7 @@ jobs:
           commitlint --config cfg/commitlintrc.json --last --verbose
 
       - name: Build with Analysis
-        run: zig build all -Dclang-tidy=true -Dcppcheck=true
+        run: zig build all
       
       - name: Test
         run: zig build test

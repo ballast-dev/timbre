@@ -1,4 +1,6 @@
-FROM ubuntu:22.04
+FROM debian:bookworm-slim
+
+SHELL ["/bin/bash", "-c", "set -euxo pipefail"]
 
 # OCI Annotations
 LABEL org.opencontainers.image.source="https://github.com/ballast-dev/timbre"
@@ -9,28 +11,18 @@ apt-get update
 apt-get install -y \
     apt-utils \
     ca-certificates \
-    clang-format \
-    clang-tidy \
-    cppcheck \
     curl \
-    debhelper \
-    devscripts \
-    dh-make \
-    dpkg-dev \
-    fakeroot \
     git \
     jq \
-    pkg-config \
     tzdata \
-    wget \
-    xz-utils
+    wget
 # Clean up apt cache
 rm -rf /var/lib/apt/lists/*
 EOF
 
-# Install Zig 0.14.0
+# Install Zig 0.15.1
 RUN <<EOF
-ZIG_VERSION="0.14.0"
+ZIG_VERSION="0.15.1"
 cd /tmp
 wget -q "https://ziglang.org/download/${ZIG_VERSION}/zig-linux-x86_64-${ZIG_VERSION}.tar.xz"
 tar -xf "zig-linux-x86_64-${ZIG_VERSION}.tar.xz"
@@ -48,12 +40,12 @@ apt-get update
 apt-get install gh -y
 EOF
 
-RUN <<EOF
-# Install Node.js and npm
-curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-apt-get install -y nodejs
-npm install -g @commitlint/cli @commitlint/config-conventional auto-changelog
-EOF
+# RUN <<EOF
+# # Install Node.js and npm
+# curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+# apt-get install -y nodejs
+# npm install -g @commitlint/cli @commitlint/config-conventional auto-changelog
+# EOF
 
 WORKDIR /app
 ENTRYPOINT ["/bin/bash"]
