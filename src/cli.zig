@@ -7,6 +7,7 @@ pub const Args = struct {
     version: bool = false,
     log_dir: ?[]const u8 = null,
     config_file: ?[]const u8 = null,
+
     help: bool = false,
 
     pub fn parse(allocator: std.mem.Allocator, args: [][:0]u8) !Args {

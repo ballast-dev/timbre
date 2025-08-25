@@ -13,6 +13,18 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    // Create the regex library as a standalone module
+    const regex_lib = b.addLibrary(.{
+        .name = "timbre-regex",
+        .linkage = .static,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("regex/root.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+
+    // Create the timbre executable
     const exe = b.addExecutable(.{
         .name = "timbre",
         .root_module = b.createModule(.{
@@ -22,7 +34,19 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    // Add regex module to exe
+    exe.root_module.addImport("regex", regex_lib.root_module);
+
+    // Install artifacts
+    b.installArtifact(regex_lib);
     b.installArtifact(exe);
+
+    // Add individual build steps
+    const regex_step = b.step("regex", "Build only the regex library");
+    regex_step.dependOn(&b.addInstallArtifact(regex_lib, .{}).step);
+
+    const exe_step = b.step("exe", "Build the timbre executable");
+    exe_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
 
     // Add run step for native build
     const run_step = b.step("run", "Run the app");
@@ -45,6 +69,18 @@ pub fn build(b: *std.Build) void {
             continue;
         };
 
+        // Create regex library for this target
+        const target_regex_lib = b.addLibrary(.{
+            .name = "timbre-regex",
+            .linkage = .static,
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("regex/root.zig"),
+                .target = resolved_target,
+                .optimize = optimize,
+            }),
+        });
+
+        // Create executable for this target
         const target_exe = b.addExecutable(.{
             .name = "timbre",
             .root_module = b.createModule(.{
@@ -54,7 +90,19 @@ pub fn build(b: *std.Build) void {
             }),
         });
 
-        const target_install = b.addInstallArtifact(target_exe, .{
+        // Add regex module to target exe
+        target_exe.root_module.addImport("regex", target_regex_lib.root_module);
+
+        // Install all artifacts for this target
+        const target_regex_install = b.addInstallArtifact(target_regex_lib, .{
+            .dest_dir = .{
+                .override = .{
+                    .custom = triple,
+                },
+            },
+        });
+
+        const target_exe_install = b.addInstallArtifact(target_exe, .{
             .dest_dir = .{
                 .override = .{
                     .custom = triple,
@@ -64,7 +112,8 @@ pub fn build(b: *std.Build) void {
 
         // Add a step for building this specific target
         const target_step = b.step(triple, b.fmt("Build for {s}", .{triple}));
-        target_step.dependOn(&target_install.step);
+        target_step.dependOn(&target_regex_install.step);
+        target_step.dependOn(&target_exe_install.step);
 
         // Store the step in the hash map
         target_steps.put(triple, target_step) catch {
@@ -72,13 +121,17 @@ pub fn build(b: *std.Build) void {
         };
 
         // Add this target to the "all" step
-        all_step.dependOn(&target_install.step);
+        all_step.dependOn(&target_regex_install.step);
+        all_step.dependOn(&target_exe_install.step);
     }
 
     // Add test step
     const exe_tests = b.addTest(.{
         .root_module = exe.root_module,
     });
+
+    // Add regex module to tests
+    exe_tests.root_module.addImport("regex", regex_lib.root_module);
 
     const run_exe_tests = b.addRunArtifact(exe_tests);
     const test_step = b.step("test", "Run unit tests");

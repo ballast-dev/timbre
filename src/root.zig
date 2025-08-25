@@ -8,14 +8,20 @@ pub const cli = @import("cli.zig");
 pub const config = @import("config.zig");
 pub const log = @import("log.zig");
 pub const timbre = @import("timbre.zig");
+pub const regex = @import("regex");
 
 // Library API
 pub const Args = cli.Args;
 pub const UserConfig = config.UserConfig;
 pub const UserLevel = config.UserLevel;
+pub const UserConfigRegex = config.UserConfigRegex;
+pub const UserLevelRegex = config.UserLevelRegex;
+pub const MatchMode = config.MatchMode;
 pub const LogLevel = log.LogLevel;
 pub const Logger = log.Logger;
 pub const LogFiles = timbre.LogFiles;
+pub const Regex = regex.Regex;
+pub const RegexError = regex.RegexError;
 
 // Version information
 pub const version = .{
@@ -108,10 +114,28 @@ test "integration - config and processing" {
     try std.testing.expect(test_level.?.count == 2); // Should match "test" and "sample"
 }
 
+test "integration - regex functionality" {
+    const allocator = std.testing.allocator;
+
+    // Test that regex module works
+    try std.testing.expect(try regex.isMatch(allocator, "error|fail", "An error occurred"));
+    try std.testing.expect(try regex.isMatch(allocator, "\\d+", "123"));
+    try std.testing.expect(!try regex.isMatch(allocator, "^start", "middle start"));
+
+    // Test regex compilation
+    var compiled_regex = try Regex.compile(allocator, "(warn|warning)");
+    defer compiled_regex.deinit();
+
+    try std.testing.expect(compiled_regex.isMatch("warning message"));
+    try std.testing.expect(compiled_regex.isMatch("warn level"));
+    try std.testing.expect(!compiled_regex.isMatch("error level"));
+}
+
 // Import all module tests to run them when testing the library
 comptime {
     _ = @import("cli.zig");
     _ = @import("config.zig");
     _ = @import("log.zig");
     _ = @import("timbre.zig");
+    _ = @import("regex");
 }
