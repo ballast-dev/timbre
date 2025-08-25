@@ -10,9 +10,9 @@ jobs:
     runs-on: ubuntu-latest # Host runner
     container:
       image: ghcr.io/ballast-dev/timbre
-      # credentials:
-      #   username: krakjn
-      #   password: ${{ secrets.TOKEN }} # has permissions
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.BALLAST_TOKEN }}
     permissions:
       contents: read
       packages: write
