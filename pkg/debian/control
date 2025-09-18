@@ -1,0 +1,26 @@
+Source: timbre
+Section: utils
+Priority: optional
+Maintainer: Ballast Development Team <dev@ballast.com>
+Build-Depends: debhelper-compat (= 13), zig (>= 0.15.1)
+Standards-Version: 4.6.2
+Homepage: https://github.com/ballast-dev/timbre
+Vcs-Git: https://github.com/ballast-dev/timbre.git
+Vcs-Browser: https://github.com/ballast-dev/timbre
+Rules-Requires-Root: no
+
+Package: timbre
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Smart log filtering and categorization tool
+ Timbre is a high-performance log processing tool that filters and categorizes
+ log output using regex patterns. It provides:
+ .
+  * Smart log filtering with regex support
+  * Organized log categorization into separate files
+  * TOML configuration support
+  * High performance processing
+  * Detailed diagnostics and statistics
+ .
+ Perfect for debugging applications with verbose output by automatically
+ sorting log messages into appropriate categories (error, warning, info, debug).

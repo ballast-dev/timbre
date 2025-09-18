@@ -1,0 +1,22 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	zig build --release=fast
+
+override_dh_auto_install:
+	mkdir -p debian/timbre/usr/bin
+	cp zig-out/bin/timbre debian/timbre/usr/bin/
+	mkdir -p debian/timbre/etc/timbre
+	cp cfg/timbre.toml debian/timbre/etc/timbre/
+	mkdir -p debian/timbre/usr/share/man/man1
+	gzip -9c pkg/debian/timbre.1 > debian/timbre/usr/share/man/man1/timbre.1.gz
+
+override_dh_auto_clean:
+	rm -rf zig-out zig-cache
+	dh_auto_clean
+
+override_dh_auto_test:
+	zig build test

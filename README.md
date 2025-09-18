@@ -29,16 +29,43 @@ ls -l .timbre/
 
 ### Installation
 
-Timbre provides packages for multiple architectures:
+Timbre is available through multiple package managers:
+
+#### Debian/Ubuntu
 
 ```bash
 # For AMD64 (x86_64)
-curl -LO https://github.com/krakjn/timbre/releases/latest/download/timbre_*_amd64.deb
+curl -LO https://github.com/ballast-dev/timbre/releases/latest/download/timbre_*_amd64.deb
 sudo dpkg -i timbre_*_amd64.deb
 
 # For ARM64 (aarch64)
-curl -LO https://github.com/krakjn/timbre/releases/latest/download/timbre_*_arm64.deb
+curl -LO https://github.com/ballast-dev/timbre/releases/latest/download/timbre_*_arm64.deb
 sudo dpkg -i timbre_*_arm64.deb
+```
+
+#### Arch Linux
+
+```bash
+# Install from AUR
+yay -S timbre
+
+# Or build from source
+git clone https://github.com/ballast-dev/timbre.git
+cd timbre/pkg/archlinux
+makepkg -si
+```
+
+#### Nix/NixOS
+
+```bash
+# Install with Nix flakes
+nix profile install github:ballast-dev/timbre
+
+# Or add to your NixOS configuration
+environment.systemPackages = with pkgs; [ timbre ];
+
+# Development shell
+nix develop github:ballast-dev/timbre
 ```
 
 ### Basic Usage
@@ -72,12 +99,23 @@ error = "error|exception|fail"
 - [Contributing](docs/CONTRIBUTING.md) - How to contribute to Timbre
 - [Changelog](CHANGELOG.md) - Version history and changes
 - [Commit Convention](docs/commit_convention.md)
+- [Packaging](pkg/README.md) - Package creation and distribution
+
+## Packaging
+
+Timbre supports multiple package formats:
+
+- **Debian/Ubuntu**: `.deb` packages for APT-based systems
+- **Arch Linux**: `PKGBUILD` for Arch User Repository (AUR)
+- **Nix**: Flake-based package for Nix/NixOS
+
+See [`pkg/README.md`](pkg/README.md) for detailed packaging instructions and maintenance guidelines.
 
 ## Building from Source
 
 ### Prerequisites
 
-- Zig 0.14.0 or later
+- Zig 0.15.1 or later
 - A C++17 compatible compiler
 
 ### Build Instructions

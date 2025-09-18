@@ -1,0 +1,15 @@
+pkgbase = timbre
+	pkgdesc = Smart log filtering and categorization tool
+	pkgver = 1.0.0
+	pkgrel = 1
+	url = https://github.com/ballast-dev/timbre
+	arch = x86_64
+	arch = aarch64
+	license = MIT
+	makedepends = zig>=0.15.1
+	makedepends = git
+	depends = glibc
+	source = timbre-1.0.0.tar.gz::https://github.com/ballast-dev/timbre/archive/v1.0.0.tar.gz
+	sha256sums = SKIP
+
+pkgname = timbre

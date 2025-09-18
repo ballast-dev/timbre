@@ -1,0 +1,42 @@
+# Maintainer: Ballast Development Team <dev@ballast.com>
+pkgname=timbre
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Smart log filtering and categorization tool"
+arch=('x86_64' 'aarch64')
+url="https://github.com/ballast-dev/timbre"
+license=('MIT')
+depends=('glibc')
+makedepends=('zig>=0.15.1' 'git')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/ballast-dev/timbre/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')  # Update with actual SHA256 when creating releases
+
+build() {
+    cd "$pkgname-$pkgver"
+    zig build --release=fast
+}
+
+check() {
+    cd "$pkgname-$pkgver"
+    zig build test
+}
+
+package() {
+    cd "$pkgname-$pkgver"
+    
+    # Install binary
+    install -Dm755 zig-out/bin/timbre "$pkgdir/usr/bin/timbre"
+    
+    # Install configuration file
+    install -Dm644 cfg/timbre.toml "$pkgdir/etc/timbre/timbre.toml"
+    
+    # Install man page
+    install -Dm644 pkg/debian/timbre.1 "$pkgdir/usr/share/man/man1/timbre.1"
+    
+    # Install license
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    
+    # Install documentation
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+    install -Dm644 CHANGELOG.md "$pkgdir/usr/share/doc/$pkgname/CHANGELOG.md"
+}

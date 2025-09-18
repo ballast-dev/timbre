@@ -1,0 +1,74 @@
+.TH TIMBRE 1 "September 2025" "timbre 1.0.0" "User Commands"
+.SH NAME
+timbre \- Smart log filtering and categorization tool
+.SH SYNOPSIS
+.B timbre
+[\fIOPTION\fR]...
+.SH DESCRIPTION
+Timbre is a high-performance log processing tool that filters and categorizes
+log output using regex patterns. It reads from stdin and sorts log messages
+into appropriate categories based on configurable patterns.
+.PP
+Timbre provides smart log filtering with regex support, organized log
+categorization into separate files, TOML configuration support, and detailed
+diagnostics.
+.SH OPTIONS
+.TP
+\fB\-c\fR, \fB\-\-config\fR=\fIFILE\fR
+Use configuration file FILE instead of the default
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Enable verbose output
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Suppress stdout output (only write to log files)
+.TP
+\fB\-a\fR, \fB\-\-append\fR
+Append to existing log files instead of truncating
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Display help message and exit
+.TP
+\fB\-\-version\fR
+Display version information and exit
+.SH FILES
+.TP
+.I /etc/timbre/timbre.toml
+System-wide configuration file
+.TP
+.I ~/.config/timbre/timbre.toml
+User configuration file
+.TP
+.I ./timbre.toml
+Local configuration file (highest priority)
+.SH EXAMPLES
+.TP
+Process logs with default settings:
+.B ./app | timbre
+.TP
+Use custom configuration:
+.B ./app | timbre --config=custom.toml
+.TP
+Enable verbose output:
+.B ./app | timbre --verbose
+.TP
+Quiet mode (no stdout):
+.B ./app | timbre --quiet
+.SH EXIT STATUS
+.TP
+.B 0
+Success
+.TP
+.B 1
+General error
+.TP
+.B 2
+Configuration error
+.SH BUGS
+Report bugs to: https://github.com/ballast-dev/timbre/issues
+.SH SEE ALSO
+.BR grep (1),
+.BR tail (1),
+.BR tee (1)
+.PP
+Full documentation at: https://github.com/ballast-dev/timbre

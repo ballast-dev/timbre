@@ -1,0 +1,10 @@
+timbre (1.0.0-1) unstable; urgency=medium
+
+  * Initial release
+  * Smart log filtering with regex support
+  * Organized log categorization
+  * TOML configuration support
+  * High performance log processing
+  * Cross-platform support (amd64, arm64)
+
+ -- Ballast Development Team <dev@ballast.com>  Thu, 18 Sep 2025 00:00:00 +0000
