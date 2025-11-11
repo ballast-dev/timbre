@@ -2,9 +2,6 @@ name: ci
 
 on:
   push:
-    branches: [ main ]
-    tags:
-      - '*'
 
 jobs:
   lint_build_test:
