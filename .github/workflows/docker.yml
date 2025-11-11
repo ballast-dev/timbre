@@ -17,7 +17,7 @@ jobs:
     - name: Docker Login
       shell: bash
       run: |
-        echo "${{ secrets.BALLAST_DEV_TOKEN }}" | docker login -u krakjn --password-stdin ghcr.io
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u ${{ github.actor }} --password-stdin ghcr.io
 
     - uses: actions/checkout@v5
 
