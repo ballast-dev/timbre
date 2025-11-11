@@ -31,25 +31,16 @@ jobs:
         run: |
           zig build test
           zig build all
-          mkdir artifacts
-          cp -r zig-out/* artifacts/
-      
-      # useful for debugging
-      - uses: actions/upload-artifact@v4
-        with:
-          name: timbre
-          path: |
-            artifacts/*
 
 
       - name: Create release archives
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           cd zig-out
-          tar -cJf timbre-aarch64-linux-musl.tar.xz aarch64-linux-musl
+          tar -cJf timbre-aarch64-linux.tar.xz aarch64-linux
           tar -cJf timbre-aarch64-macos.tar.xz aarch64-macos
           tar -cJf timbre-aarch64-windows.tar.xz aarch64-windows
-          tar -cJf timbre-x86_64-linux-musl.tar.xz x86_64-linux-musl
+          tar -cJf timbre-x86_64-linux.tar.xz x86_64-linux
           tar -cJf timbre-x86_64-macos.tar.xz x86_64-macos
           tar -cJf timbre-x86_64-windows.tar.xz x86_64-windows
 
