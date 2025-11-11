@@ -2,23 +2,22 @@ name: CI
 
 on:
   push:
-    branches: [ '**' ]
+    branches: [ main ]
 
 jobs:
   lint_build_test:
     name: Lint, Build, and Test
-    runs-on: ubuntu-latest # Host runner
+    runs-on: ubuntu-latest
     container:
       image: ghcr.io/ballast-dev/timbre
       credentials:
         username: ${{ github.actor }}
-        password: ${{ secrets.BALLAST_TOKEN }}
+        password: ${{ secrets.BALLAST_DEV_TOKEN }}
     permissions:
       contents: read
       packages: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Git
         run: |
@@ -28,12 +27,8 @@ jobs:
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'github-actions@github.com'
       
-      - name: Lint commit messages
-        run: |
-          commitlint --config cfg/commitlintrc.json --last --verbose
 
-      - name: Build with Analysis
-        run: zig build all
-      
-      - name: Test
-        run: zig build test
+      - name: Test and Build
+        run: |
+          zig build test
+          zig build all

@@ -6,12 +6,10 @@ on:
     paths:
       - 'Dockerfile'
       - '.github/workflows/docker-publish.yml'
-      - 'scripts/*'
   pull_request:
     branches: [ "main" ]
     paths:
       - 'Dockerfile'
-      - 'scripts/*'
   workflow_dispatch:
 
 jobs:

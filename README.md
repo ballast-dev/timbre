@@ -2,13 +2,14 @@
 
 Debugging a program with tons of output? Pass them to `timbre`
 
+[![CI](https://github.com/ballast-dev/timbre/actions/workflows/ci.yml/badge.svg)](https://github.com/ballast-dev/timbre/actions/workflows/ci.yml)
+
 ## Features
 
-- 🔍 Smart log filtering with regex support
-- 📁 Organized log categorization
-- ⚙️ TOML configuration
-- 🚀 High performance
-- 📊 Detailed diagnostics
+- Pure zig, even the regex lib 
+- Log filter with regex!
+- Categorize your logs to each filter
+- \[Optional\] toml configuration
 
 ```sh
 ./app_with_tons_of_output | timbre
@@ -22,26 +23,7 @@ ls -l .timbre/
   debug.log
 ```
 
-[![CI](https://github.com/ballast-dev/timbre/actions/workflows/ci.yml/badge.svg)](https://github.com/ballast-dev/timbre/actions/workflows/ci.yml)
-[![Release](https://github.com/ballast-dev/timbre/actions/workflows/release.yml/badge.svg)](https://github.com/ballast-dev/timbre/actions/workflows/release.yml)
-
-## Quick Start
-
-### Installation
-
-Timbre provides packages for multiple architectures:
-
-```bash
-# For AMD64 (x86_64)
-curl -LO https://github.com/krakjn/timbre/releases/latest/download/timbre_*_amd64.deb
-sudo dpkg -i timbre_*_amd64.deb
-
-# For ARM64 (aarch64)
-curl -LO https://github.com/krakjn/timbre/releases/latest/download/timbre_*_arm64.deb
-sudo dpkg -i timbre_*_arm64.deb
-```
-
-### Basic Usage
+## Basic Usage
 
 ```bash
 # Process logs with default settings
@@ -66,19 +48,12 @@ warn = "warn(ing)?"
 error = "error|exception|fail"
 ```
 
-## Documentation
-
-- [Workflow](docs/workflow.md) - Detailed CI/CD and development workflow
-- [Contributing](docs/CONTRIBUTING.md) - How to contribute to Timbre
-- [Changelog](CHANGELOG.md) - Version history and changes
-- [Commit Convention](docs/commit_convention.md)
 
 ## Building from Source
 
 ### Prerequisites
 
-- Zig 0.14.0 or later
-- A C++17 compatible compiler
+- Zig 0.15.0 or later
 
 ### Build Instructions
 
