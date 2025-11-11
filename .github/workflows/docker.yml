@@ -13,14 +13,18 @@ jobs:
     permissions:
       contents: write
       packages: write
-    env:
-      GITHUB_TOKEN: ${{ secrets.BALLAST_DEV_TOKEN }}
     steps:
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
     - name: Docker Setup
       shell: bash
       run: |
         docker buildx create --name cacher --driver docker-container
-        echo "$GITHUB_TOKEN" | docker login -u krakjn --password-stdin ghcr.io
 
     - uses: actions/checkout@v5
 
@@ -34,7 +38,6 @@ jobs:
           --platform linux/amd64 \
           --tag "${IMAGE_NAME}" \
           --build-arg BUILDKIT_INLINE_CACHE=1 \
-          --secret id=GITHUB_TOKEN \
           --cache-from "type=registry,ref=${IMAGE_NAME}:buildcache" \
           --cache-to "type=registry,ref=${IMAGE_NAME}:buildcache,mode=max" \
           - < Dockerfile
