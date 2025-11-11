@@ -36,11 +36,4 @@ apt-get update
 apt-get install gh -y
 EOF
 
-# RUN <<EOF
-# # Install Node.js and npm
-# curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-# apt-get install -y nodejs
-# npm install -g @commitlint/cli @commitlint/config-conventional auto-changelog
-# EOF
-
 CMD ["/bin/bash"]
