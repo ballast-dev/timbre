@@ -1,10 +1,5 @@
 FROM debian:bookworm-slim
 
-SHELL ["/bin/bash", "-c", "set -euxo pipefail"]
-
-# OCI Annotations
-LABEL org.opencontainers.image.source="https://github.com/ballast-dev/timbre"
-
 RUN <<EOF
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
@@ -15,20 +10,21 @@ apt-get install -y \
     git \
     jq \
     tzdata \
-    wget
+    wget \
+    xz-utils
 # Clean up apt cache
 rm -rf /var/lib/apt/lists/*
 EOF
 
-# Install Zig 0.15.1
 RUN <<EOF
-ZIG_VERSION="0.15.1"
+export ARCH=$(uname -m)
+export ZIG_VERSION="0.15.2"
 cd /tmp
-wget -q "https://ziglang.org/download/${ZIG_VERSION}/zig-linux-x86_64-${ZIG_VERSION}.tar.xz"
-tar -xf "zig-linux-x86_64-${ZIG_VERSION}.tar.xz"
-mv "zig-linux-x86_64-${ZIG_VERSION}" /usr/local/zig
+wget -q "https://ziglang.org/download/${ZIG_VERSION}/zig-${ARCH}-linux-${ZIG_VERSION}.tar.xz"
+tar -xJf "zig-${ARCH}-linux-${ZIG_VERSION}.tar.xz"
+mv "zig-${ARCH}-linux-${ZIG_VERSION}" /usr/local/zig
 ln -s /usr/local/zig/zig /usr/local/bin/zig
-rm "zig-linux-x86_64-${ZIG_VERSION}.tar.xz"
+rm "zig-${ARCH}-linux-${ZIG_VERSION}.tar.xz"
 zig version
 EOF
 
@@ -40,12 +36,4 @@ apt-get update
 apt-get install gh -y
 EOF
 
-# RUN <<EOF
-# # Install Node.js and npm
-# curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-# apt-get install -y nodejs
-# npm install -g @commitlint/cli @commitlint/config-conventional auto-changelog
-# EOF
-
-WORKDIR /app
-ENTRYPOINT ["/bin/bash"]
+CMD ["/bin/bash"]
