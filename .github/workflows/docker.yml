@@ -16,6 +16,9 @@ jobs:
       run: |
         docker buildx create --name cacher --driver docker-container
         echo "${{ secrets.BALLAST_DEV_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+    - uses: actions/checkout@v5
+
     - name: Build and Push Docker Image
       shell: bash
       run: |
