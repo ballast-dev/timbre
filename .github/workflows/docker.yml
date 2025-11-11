@@ -1,0 +1,35 @@
+name: Docker Publish
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'Dockerfile'
+
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.BALLAST_DEV_TOKEN }}
+    steps:
+    - name: Docker Setup
+      shell: bash
+      run: |
+        docker buildx create --name cacher --driver docker-container
+        echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+    - name: Build and Push Docker Image
+      shell: bash
+      run: |
+        export IMAGE_NAME='ghcr.io/ballast-dev/timbre'
+        docker buildx build \
+          --builder cacher \
+          --push \
+          --platform linux/amd64 \
+          --tag "${IMAGE_NAME}" \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
+          --secret id=GITHUB_TOKEN \
+          --cache-from "type=registry,ref=${IMAGE_NAME}:buildcache" \
+          --cache-to "type=registry,ref=${IMAGE_NAME}:buildcache,mode=max" \
+          - < Dockerfile
