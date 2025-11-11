@@ -13,29 +13,19 @@ jobs:
     permissions:
       contents: write
       packages: write
-    env:
-      GITHUB_TOKEN: ${{ secrets.BALLAST_DEV_TOKEN }}
     steps:
-    - name: Docker Setup
+    - name: Docker Login
       shell: bash
       run: |
-        docker buildx create --name cacher --driver docker-container
-        echo "$GITHUB_TOKEN" | docker login -u krakjn --password-stdin ghcr.io
+        echo "${{ secrets.BALLAST_DEV_TOKEN }}" | docker login -u krakjn --password-stdin ghcr.io
 
     - uses: actions/checkout@v5
 
     - name: Build and Push Docker Image
       shell: bash
       run: |
-        export IMAGE_NAME='ghcr.io/ballast-dev/timbre'
         docker buildx build \
-          --builder cacher \
           --push \
           --platform linux/amd64 \
-          --tag "${IMAGE_NAME}" \
-          --secret id=GITHUB_TOKEN \
+          --tag ghcr.io/ballast-dev/timbre \
           - < Dockerfile
-
-# --build-arg BUILDKIT_INLINE_CACHE=1 \
-# --cache-from "type=registry,ref=${IMAGE_NAME}:buildcache" \
-# --cache-to "type=registry,ref=${IMAGE_NAME}:buildcache,mode=max" \
