@@ -4,8 +4,8 @@ on:
   push:
 
 jobs:
-  lint_build_test:
-    name: Lint, Build, and Test
+  timbre:
+    name: Timbre lint, build, and ship
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ballast-dev/timbre
